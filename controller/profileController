@@ -1,0 +1,40 @@
+import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
+import { Appointment } from "../models/appointmentSchema.js";
+import { User } from "../models/userSchema.js";
+import ErrorHandler from "../middlewares/error.js";
+
+export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
+  try {
+    // Access user information from req.user or fetch from database
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Fetch appointments for the authenticated user
+    const appointments = await Appointment.find({ patientId: userId });
+
+    // Customize data retrieval based on user role or other conditions
+    let profileData;
+
+    if (user.role === "patient") {
+      // If user is a patient, construct patient profile data including appointments
+      profileData = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        dob: user.dob,
+        appointments: appointments,
+        
+      };
+    }
+
+    // Send the selected profile data as a JSON response
+    res.json(profileData);
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
